@@ -5,6 +5,7 @@ import { DebugPanel } from "@/components/DebugPanel";
 import { DroneControls } from "@/components/DroneControls";
 import { ExercisePanel } from "@/components/ExercisePanel";
 import { SaPicker } from "@/components/SaPicker";
+import { ScriptPicker } from "@/components/ScriptPicker";
 import { StartGate } from "@/components/StartGate";
 import { useDrone } from "@/hooks/useDrone";
 import { useExercise } from "@/hooks/useExercise";
@@ -44,6 +45,8 @@ export default function Home() {
           <div className={hydrated ? "opacity-100 transition-opacity" : "opacity-0"}>
             <SaPicker />
           </div>
+
+          <ScriptPicker />
 
           <DroneControls />
 

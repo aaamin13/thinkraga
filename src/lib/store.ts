@@ -7,7 +7,9 @@ import {
   FINE_TUNE_RANGE_CENTS,
   findNoteOption,
   resolveSaHz,
+  SWARA_SCRIPTS,
   type SwaraCode,
+  type SwaraScript,
 } from "@/lib/music/swara";
 
 export const FFT_SIZES = [2048, 4096] as const;
@@ -29,6 +31,7 @@ interface PersistedSettings {
   droneSource: DroneSource;
   /** Best Sa Re Ga round score (0..100), if any. */
   bestRoundScore: number | null;
+  swaraScript: SwaraScript;
 }
 
 export interface DetectedPitch {
@@ -77,6 +80,7 @@ interface AppState extends PersistedSettings {
   setDroneFirstString: (first: FirstString) => void;
   setDroneSource: (source: DroneSource) => void;
   recordRoundScore: (score: number) => void;
+  setSwaraScript: (script: SwaraScript) => void;
   setSampleRate: (rate: number | null) => void;
   setLive: (live: LiveReading) => void;
 }
@@ -87,6 +91,7 @@ const DEFAULTS: PersistedSettings = { saNoteId: DEFAULT_SA_NOTE_ID, fineCents: 0
   droneFirstString: "pa",
   droneSource: "sample",
   bestRoundScore: null,
+  swaraScript: "devanagari",
 };
 
 function sanitize(raw: Partial<PersistedSettings> | undefined): PersistedSettings {
@@ -114,6 +119,7 @@ function sanitize(raw: Partial<PersistedSettings> | undefined): PersistedSetting
     droneFirstString,
     droneSource,
     bestRoundScore,
+    swaraScript: SWARA_SCRIPTS.find((v) => v === raw?.swaraScript) ?? DEFAULTS.swaraScript,
   };
 }
 
@@ -133,6 +139,7 @@ export const useAppStore = create<AppState>()(
       setDroneVolume: (v) => set({ droneVolume: sanitize({ droneVolume: v }).droneVolume }),
       setDroneFirstString: (f) => set({ droneFirstString: sanitize({ droneFirstString: f }).droneFirstString }),
       setDroneSource: (s) => set({ droneSource: sanitize({ droneSource: s }).droneSource }),
+      setSwaraScript: (script) => set({ swaraScript: sanitize({ swaraScript: script }).swaraScript }),
       recordRoundScore: (score) =>
         set((state) => ({
           bestRoundScore:
@@ -155,6 +162,7 @@ export const useAppStore = create<AppState>()(
         droneFirstString,
         droneSource,
         bestRoundScore,
+        swaraScript,
       }): PersistedSettings => ({
         saNoteId,
         fineCents,
@@ -164,6 +172,7 @@ export const useAppStore = create<AppState>()(
         droneFirstString,
         droneSource,
         bestRoundScore,
+        swaraScript,
       }),
       merge: (persisted, current) => ({
         ...current,

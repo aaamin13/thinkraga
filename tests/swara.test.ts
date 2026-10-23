@@ -108,10 +108,17 @@ describe("nearestSwara", () => {
 
 describe("swaraLabel", () => {
   it("marks komal and tivra with a suffix", () => {
-    expect(swaraLabel("S")).toEqual({ devanagari: "सा", latin: "Sa" });
-    expect(swaraLabel("R")).toEqual({ devanagari: "रे", latin: "Re" });
-    expect(swaraLabel("r")).toEqual({ devanagari: "रे (k)", latin: "Re (k)" });
-    expect(swaraLabel("M")).toEqual({ devanagari: "म (t)", latin: "Ma (t)" });
+    expect(swaraLabel("S")).toEqual({ native: "सा", latin: "Sa" });
+    expect(swaraLabel("R")).toEqual({ native: "रे", latin: "Re" });
+    expect(swaraLabel("r")).toEqual({ native: "रे (k)", latin: "Re (k)" });
+    expect(swaraLabel("M")).toEqual({ native: "म (t)", latin: "Ma (t)" });
+  });
+
+  it("supports Bangla names", () => {
+    const names = ["S", "R", "G", "m", "P", "D", "N"] as const;
+    expect(names.map((c) => swaraLabel(c, "bengali").native).join(" ")).toBe("সা রে গা মা পা ধা নি");
+    expect(swaraLabel("g", "bengali")).toEqual({ native: "গা (k)", latin: "Ga (k)" });
+    expect(swaraLabel("M", "bengali")).toEqual({ native: "মা (t)", latin: "Ma (t)" });
   });
 });
 

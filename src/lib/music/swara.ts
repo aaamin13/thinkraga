@@ -48,6 +48,11 @@ export function resolveSaHz(noteId: string, fineCents: number): number {
 
 export type SwaraCode = "S" | "r" | "R" | "g" | "G" | "m" | "M" | "P" | "d" | "D" | "n" | "N";
 export type TuningSystem = "et" | "just";
+/** Script used for the native-language swara names (the Latin name is always shown too). */
+export type SwaraScript = "devanagari" | "bengali";
+
+export const SWARA_SCRIPTS: readonly SwaraScript[] = ["devanagari", "bengali"];
+
 export type SwaraKind = "achal" | "shuddha" | "komal" | "tivra";
 
 export interface Swara {
@@ -58,6 +63,8 @@ export interface Swara {
   latin: string;
   /** Devanagari name, e.g. "रे". */
   devanagari: string;
+  /** Bangla name, e.g. "রে". */
+  bengali: string;
   kind: SwaraKind;
   etCents: number;
   /** Just intonation ratio as [numerator, denominator]. */
@@ -65,18 +72,18 @@ export interface Swara {
 }
 
 export const SWARAS: readonly Swara[] = [
-  { code: "S", name: "Shadja", latin: "Sa", devanagari: "सा", kind: "achal", etCents: 0, justRatio: [1, 1] },
-  { code: "r", name: "Komal Rishabh", latin: "Re", devanagari: "रे", kind: "komal", etCents: 100, justRatio: [16, 15] },
-  { code: "R", name: "Shuddha Rishabh", latin: "Re", devanagari: "रे", kind: "shuddha", etCents: 200, justRatio: [9, 8] },
-  { code: "g", name: "Komal Gandhar", latin: "Ga", devanagari: "ग", kind: "komal", etCents: 300, justRatio: [6, 5] },
-  { code: "G", name: "Shuddha Gandhar", latin: "Ga", devanagari: "ग", kind: "shuddha", etCents: 400, justRatio: [5, 4] },
-  { code: "m", name: "Shuddha Madhyam", latin: "Ma", devanagari: "म", kind: "shuddha", etCents: 500, justRatio: [4, 3] },
-  { code: "M", name: "Tivra Madhyam", latin: "Ma", devanagari: "म", kind: "tivra", etCents: 600, justRatio: [45, 32] },
-  { code: "P", name: "Pancham", latin: "Pa", devanagari: "प", kind: "achal", etCents: 700, justRatio: [3, 2] },
-  { code: "d", name: "Komal Dhaivat", latin: "Dha", devanagari: "ध", kind: "komal", etCents: 800, justRatio: [8, 5] },
-  { code: "D", name: "Shuddha Dhaivat", latin: "Dha", devanagari: "ध", kind: "shuddha", etCents: 900, justRatio: [5, 3] },
-  { code: "n", name: "Komal Nishad", latin: "Ni", devanagari: "नि", kind: "komal", etCents: 1000, justRatio: [9, 5] },
-  { code: "N", name: "Shuddha Nishad", latin: "Ni", devanagari: "नि", kind: "shuddha", etCents: 1100, justRatio: [15, 8] },
+  { code: "S", name: "Shadja", latin: "Sa", devanagari: "सा", bengali: "সা", kind: "achal", etCents: 0, justRatio: [1, 1] },
+  { code: "r", name: "Komal Rishabh", latin: "Re", devanagari: "रे", bengali: "রে", kind: "komal", etCents: 100, justRatio: [16, 15] },
+  { code: "R", name: "Shuddha Rishabh", latin: "Re", devanagari: "रे", bengali: "রে", kind: "shuddha", etCents: 200, justRatio: [9, 8] },
+  { code: "g", name: "Komal Gandhar", latin: "Ga", devanagari: "ग", bengali: "গা", kind: "komal", etCents: 300, justRatio: [6, 5] },
+  { code: "G", name: "Shuddha Gandhar", latin: "Ga", devanagari: "ग", bengali: "গা", kind: "shuddha", etCents: 400, justRatio: [5, 4] },
+  { code: "m", name: "Shuddha Madhyam", latin: "Ma", devanagari: "म", bengali: "মা", kind: "shuddha", etCents: 500, justRatio: [4, 3] },
+  { code: "M", name: "Tivra Madhyam", latin: "Ma", devanagari: "म", bengali: "মা", kind: "tivra", etCents: 600, justRatio: [45, 32] },
+  { code: "P", name: "Pancham", latin: "Pa", devanagari: "प", bengali: "পা", kind: "achal", etCents: 700, justRatio: [3, 2] },
+  { code: "d", name: "Komal Dhaivat", latin: "Dha", devanagari: "ध", bengali: "ধা", kind: "komal", etCents: 800, justRatio: [8, 5] },
+  { code: "D", name: "Shuddha Dhaivat", latin: "Dha", devanagari: "ध", bengali: "ধা", kind: "shuddha", etCents: 900, justRatio: [5, 3] },
+  { code: "n", name: "Komal Nishad", latin: "Ni", devanagari: "नि", bengali: "নি", kind: "komal", etCents: 1000, justRatio: [9, 5] },
+  { code: "N", name: "Shuddha Nishad", latin: "Ni", devanagari: "नि", bengali: "নি", kind: "shuddha", etCents: 1100, justRatio: [15, 8] },
 ];
 
 const SWARA_BY_CODE = new Map<SwaraCode, Swara>(SWARAS.map((s) => [s.code, s]));
@@ -105,11 +112,14 @@ export function swaraCents(code: SwaraCode, tuning: TuningSystem, octave = 0): n
   return withinOctave + octave * CENTS_PER_OCTAVE;
 }
 
-/** Display label with komal/tivra marked by a simple suffix, e.g. { devanagari: "रे (k)", latin: "Re (k)" }. */
-export function swaraLabel(code: SwaraCode): { devanagari: string; latin: string } {
-  const { devanagari, latin, kind } = getSwara(code);
-  const suffix = kind === "komal" ? " (k)" : kind === "tivra" ? " (t)" : "";
-  return { devanagari: devanagari + suffix, latin: latin + suffix };
+/** Display label with komal/tivra marked by a simple suffix, e.g. { native: "রে (k)", latin: "Re (k)" }. */
+export function swaraLabel(
+  code: SwaraCode,
+  script: SwaraScript = "devanagari",
+): { native: string; latin: string } {
+  const swara = getSwara(code);
+  const suffix = swara.kind === "komal" ? " (k)" : swara.kind === "tivra" ? " (t)" : "";
+  return { native: swara[script] + suffix, latin: swara.latin + suffix };
 }
 
 export interface NearestSwara {

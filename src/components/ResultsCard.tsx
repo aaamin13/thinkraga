@@ -1,6 +1,7 @@
 import { Stars } from "@/components/Stars";
 import type { NoteResult } from "@/hooks/useExercise";
 import { swaraLabel } from "@/lib/music/swara";
+import { useAppStore } from "@/lib/store";
 
 interface ResultsCardProps {
   results: readonly NoteResult[];
@@ -11,6 +12,7 @@ interface ResultsCardProps {
 }
 
 export function ResultsCard({ results, roundScore, isNewBest, bestScore, onRetry }: ResultsCardProps) {
+  const script = useAppStore((s) => s.swaraScript);
   return (
     <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5" aria-label="Round results">
       <div className="text-center">
@@ -21,11 +23,11 @@ export function ResultsCard({ results, roundScore, isNewBest, bestScore, onRetry
 
       <ul className="flex flex-col gap-2">
         {results.map((result, i) => {
-          const { devanagari, latin } = swaraLabel(result.code);
+          const { native, latin } = swaraLabel(result.code, script);
           return (
             <li key={i} className="flex items-center justify-between rounded-xl bg-background px-4 py-3">
               <span className="text-lg">
-                {devanagari} <span className="text-muted">{latin}</span>
+                {native} <span className="text-muted">{latin}</span>
               </span>
               <span className="flex items-center gap-3">
                 <Stars count={result.stars} className="text-xl" />

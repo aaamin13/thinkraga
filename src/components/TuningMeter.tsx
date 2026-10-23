@@ -14,6 +14,7 @@ function tone(absOffset: number): { text: string; bg: string } {
 
 export function TuningMeter({ compact = false }: { compact?: boolean }) {
   const pitch = useAppStore((s) => s.live.pitch);
+  const script = useAppStore((s) => s.swaraScript);
 
   if (!pitch) {
     return (
@@ -24,7 +25,7 @@ export function TuningMeter({ compact = false }: { compact?: boolean }) {
     );
   }
 
-  const { devanagari, latin } = swaraLabel(pitch.code);
+  const { native, latin } = swaraLabel(pitch.code, script);
   const offset = pitch.offsetCents;
   const rounded = Math.round(offset);
   const { text, bg } = tone(Math.abs(offset));
@@ -33,7 +34,7 @@ export function TuningMeter({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`flex flex-col items-center justify-center gap-2 ${compact ? "h-24" : "h-36"}`} aria-live="off">
       <p className={`whitespace-nowrap font-semibold ${text} ${compact ? "text-2xl" : "text-4xl"}`}>
-        {devanagari} <span className={compact ? "text-xl" : "text-3xl"}>{latin}</span>
+        {native} <span className={compact ? "text-xl" : "text-3xl"}>{latin}</span>
       </p>
       <p className={`whitespace-nowrap font-mono tabular-nums ${text} ${compact ? "text-sm" : "text-lg"}`}>
         {rounded > 0 ? "+" : ""}

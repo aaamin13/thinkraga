@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Noto_Sans_Devanagari } from "next/font/google";
+import { Geist, Geist_Mono, Noto_Sans_Bengali, Noto_Sans_Devanagari } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 const notoDevanagari = Noto_Sans_Devanagari({
   variable: "--font-devanagari",
   subsets: ["devanagari"],
+});
+
+const notoBengali = Noto_Sans_Bengali({
+  variable: "--font-bengali",
+  subsets: ["bengali"],
 });
 
 export const metadata: Metadata = {
@@ -35,7 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${notoDevanagari.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${notoDevanagari.variable} ${notoBengali.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
