@@ -175,6 +175,7 @@ function runDetectionLoop(
       rawHz: frame.rawHz,
       clarity: frame.clarity,
       rms: frame.rms,
+      belowGate: frame.belowGate,
       fps,
       contextState: context.state,
     });

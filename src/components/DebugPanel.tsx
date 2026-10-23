@@ -8,7 +8,7 @@ export function DebugPanel() {
   const setFftSize = useAppStore((s) => s.setFftSize);
   const silenceRms = useAppStore((s) => s.silenceRms);
   const setSilenceRms = useAppStore((s) => s.setSilenceRms);
-  const { pitch, rawHz, clarity, rms, fps, contextState } = useAppStore((s) => s.live);
+  const { pitch, rawHz, clarity, rms, belowGate, fps, contextState } = useAppStore((s) => s.live);
 
   const rows: [string, string][] = [
     ["Audio context", contextState ?? "–"],
@@ -17,7 +17,7 @@ export function DebugPanel() {
     ["Median Hz", pitch ? pitch.hz.toFixed(2) : "–"],
     ["Cents vs Sa", pitch ? pitch.cents.toFixed(1) : "–"],
     ["Clarity", clarity.toFixed(3)],
-    ["RMS (level)", `${rms.toFixed(4)}${rms < silenceRms ? " · below gate" : ""}`],
+    ["RMS (level)", `${rms.toFixed(4)}${belowGate ? " · below gate" : ""}`],
     ["Frames/s", fps ? fps.toFixed(0) : "–"],
   ];
 

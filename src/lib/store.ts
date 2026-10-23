@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { DEFAULT_SILENCE_RMS } from "@/lib/audio/pitch";
 import {
   DEFAULT_SA_NOTE_ID,
   FINE_TUNE_RANGE_CENTS,
@@ -12,7 +13,7 @@ export const FFT_SIZES = [2048, 4096] as const;
 export type FftSize = (typeof FFT_SIZES)[number];
 
 /** Input levels (RMS) below this are treated as silence. Lower it if your mic is quiet. */
-export const SILENCE_RMS_OPTIONS = [0.002, 0.005, 0.01, 0.02] as const;
+export const SILENCE_RMS_OPTIONS = [0.0005, 0.001, 0.002, 0.005, 0.01] as const;
 export type SilenceRms = (typeof SILENCE_RMS_OPTIONS)[number];
 
 interface PersistedSettings {
@@ -38,6 +39,7 @@ export interface LiveReading {
   rawHz: number | null;
   clarity: number;
   rms: number;
+  belowGate: boolean;
   fps: number;
   contextState: AudioContextState | null;
 }
@@ -47,6 +49,7 @@ export const EMPTY_LIVE: LiveReading = {
   rawHz: null,
   clarity: 0,
   rms: 0,
+  belowGate: false,
   fps: 0,
   contextState: null,
 };
@@ -65,7 +68,7 @@ interface AppState extends PersistedSettings {
 }
 
 const DEFAULTS: PersistedSettings = { saNoteId: DEFAULT_SA_NOTE_ID, fineCents: 0, fftSize: 2048,
-  silenceRms: 0.01,
+  silenceRms: DEFAULT_SILENCE_RMS,
 };
 
 function sanitize(raw: Partial<PersistedSettings> | undefined): PersistedSettings {

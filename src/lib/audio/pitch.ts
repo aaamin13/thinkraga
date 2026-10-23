@@ -1,7 +1,10 @@
 import { PitchDetector } from "pitchy";
 
 export const MIN_CLARITY = 0.9;
-export const DEFAULT_SILENCE_RMS = 0.01;
+export const DEFAULT_SILENCE_RMS = 0.002;
+// Once a sound is above the gate it stays open until the level falls to this fraction of it,
+// so a sustained note hovering near the threshold doesn't flicker.
+const GATE_RELEASE_RATIO = 0.6;
 export const MIN_HZ = 60;
 export const MAX_HZ = 1200;
 
@@ -12,6 +15,8 @@ export interface PitchFrame {
   rawHz: number;
   clarity: number;
   rms: number;
+  /** True when the level is under the silence gate. */
+  belowGate: boolean;
 }
 
 export interface PitchAnalyzer {
@@ -28,6 +33,7 @@ function rootMeanSquare(buffer: Float32Array): number {
 export function createPitchAnalyzer(analyser: AnalyserNode, sampleRate: number): PitchAnalyzer {
   const buffer = new Float32Array(analyser.fftSize);
   const detector = PitchDetector.forFloat32Array(analyser.fftSize);
+  let gateOpen = false;
 
   return {
     analyze(silenceRms) {
@@ -35,8 +41,9 @@ export function createPitchAnalyzer(analyser: AnalyserNode, sampleRate: number):
       const rms = rootMeanSquare(buffer);
 
       const [rawHz, clarity] = detector.findPitch(buffer, sampleRate);
-      const valid = rms >= silenceRms && clarity >= MIN_CLARITY && rawHz >= MIN_HZ && rawHz <= MAX_HZ;
-      return { hz: valid ? rawHz : null, rawHz, clarity, rms };
+      gateOpen = rms >= (gateOpen ? silenceRms * GATE_RELEASE_RATIO : silenceRms);
+      const valid = gateOpen && clarity >= MIN_CLARITY && rawHz >= MIN_HZ && rawHz <= MAX_HZ;
+      return { hz: valid ? rawHz : null, rawHz, clarity, rms, belowGate: !gateOpen };
     },
   };
 }
