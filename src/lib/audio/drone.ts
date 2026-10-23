@@ -166,46 +166,69 @@ export class SynthDrone implements Drone {
   }
 }
 
+/** Which tanpura the user hears. The synth is also the fallback if the recording fails to load. */
+export type DroneSource = "sample" | "synth";
+
+export const DRONE_SOURCES: readonly DroneSource[] = ["sample", "synth"];
+
+/** Seamlessly looping recording (see public/audio/CREDITS.md). */
+export const TANPURA_SAMPLE = { url: "/audio/tanpura-c-sharp-3.wav", saHz: 138.59 } as const;
+
+const SAMPLE_LEVEL = 0.6;
+
 /**
- * TODO: loop a recorded tanpura `AudioBuffer` (seamless loop points still to be chosen) and
- * replace SynthDrone in `getDrone` once a recording is available.
+ * Loops a recorded tanpura. It is transposed by changing `playbackRate`, so tempo and timbre shift
+ * with it; the further your Sa is from the recorded one, the less natural it sounds.
  */
 export class SampleDrone implements Drone {
-  private source: AudioBufferSourceNode | null = null;
-  private readonly gain: GainNode;
+  private graph: { source: AudioBufferSourceNode; master: GainNode } | null = null;
   private saHz = 0;
+  private volume = 0.5;
 
   constructor(
     private readonly context: AudioContext,
     private readonly buffer: AudioBuffer,
     /** Sa the recording was made in. */
     private readonly recordedSaHz: number,
-  ) {
-    this.gain = context.createGain();
-    this.gain.connect(context.destination);
-  }
+  ) {}
 
   start(saHz: number): void {
-    this.stop();
     this.saHz = saHz;
-    const source = this.context.createBufferSource();
+    if (this.graph) return;
+
+    const { context } = this;
+    const master = context.createGain();
+    master.gain.value = 0;
+    master.gain.setTargetAtTime(this.volumeGain(), context.currentTime, FADE_TIME_CONSTANT_S);
+    master.connect(context.destination);
+
+    const source = context.createBufferSource();
     source.buffer = this.buffer;
     source.loop = true;
     source.playbackRate.value = saHz / this.recordedSaHz;
-    source.connect(this.gain);
+    source.connect(master);
     source.start();
-    this.source = source;
+    this.graph = { source, master };
   }
 
   stop(): void {
-    this.source?.stop();
-    this.source?.disconnect();
-    this.source = null;
+    const graph = this.graph;
+    if (!graph) return;
+    this.graph = null;
+
+    const now = this.context.currentTime;
+    graph.master.gain.cancelScheduledValues(now);
+    graph.master.gain.setTargetAtTime(0, now, FADE_TIME_CONSTANT_S);
+    window.setTimeout(() => {
+      graph.source.stop();
+      graph.source.disconnect();
+      graph.master.disconnect();
+    }, TEARDOWN_DELAY_MS);
   }
 
   setSa(saHz: number): void {
     this.saHz = saHz;
-    this.source?.playbackRate.setTargetAtTime(
+    this.graph?.source.playbackRate.setTargetAtTime(
       saHz / this.recordedSaHz,
       this.context.currentTime,
       RETUNE_TIME_CONSTANT_S,
@@ -213,18 +236,54 @@ export class SampleDrone implements Drone {
   }
 
   setVolume(v: number): void {
-    this.gain.gain.setTargetAtTime(v * v, this.context.currentTime, RETUNE_TIME_CONSTANT_S);
+    this.volume = Math.max(0, Math.min(1, v));
+    this.graph?.master.gain.setTargetAtTime(
+      this.volumeGain(),
+      this.context.currentTime,
+      RETUNE_TIME_CONSTANT_S,
+    );
+  }
+
+  private volumeGain(): number {
+    return this.volume * this.volume * SAMPLE_LEVEL;
   }
 }
 
-let instance: SynthDrone | null = null;
+let synth: SynthDrone | null = null;
+let sample: Promise<SampleDrone> | null = null;
+let sampleBytes: Promise<ArrayBuffer> | null = null;
 
-/** The app-wide drone. Swap the implementation here when a sampled tanpura is available. */
-export function getDrone(context: AudioContext): SynthDrone {
-  instance ??= new SynthDrone(context);
-  return instance;
+export function getSynthDrone(context: AudioContext): SynthDrone {
+  synth ??= new SynthDrone(context);
+  return synth;
 }
 
-export function peekDrone(): SynthDrone | null {
-  return instance;
+/** Starts downloading the recording so it is ready when the drone is switched on. */
+export function prefetchTanpuraSample(): void {
+  sampleBytes ??= fetch(TANPURA_SAMPLE.url).then((response) => {
+    if (!response.ok) throw new Error(`Tanpura sample request failed: ${response.status}`);
+    return response.arrayBuffer();
+  });
+  // A failed prefetch is retried (and reported) by getSampleDrone; avoid an unhandled rejection here.
+  sampleBytes.catch(() => {
+    sampleBytes = null;
+  });
+}
+
+/** Rejects if the recording can't be fetched or decoded; callers fall back to the synth. */
+export function getSampleDrone(context: AudioContext): Promise<SampleDrone> {
+  if (!sample) {
+    prefetchTanpuraSample();
+    const bytes = sampleBytes;
+    if (!bytes) return Promise.reject(new Error("Tanpura sample unavailable"));
+    sample = bytes
+      // decodeAudioData detaches the buffer it is given, so decode a copy.
+      .then((data) => context.decodeAudioData(data.slice(0)))
+      .then((buffer) => new SampleDrone(context, buffer, TANPURA_SAMPLE.saHz));
+    sample.catch(() => {
+      sample = null;
+      sampleBytes = null;
+    });
+  }
+  return sample;
 }

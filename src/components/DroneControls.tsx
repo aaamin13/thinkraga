@@ -1,13 +1,15 @@
 "use client";
 
 import { unlockAudioContext } from "@/lib/audio/context";
-import { FIRST_STRINGS } from "@/lib/audio/drone";
+import { DRONE_SOURCES, FIRST_STRINGS, type DroneSource } from "@/lib/audio/drone";
 import { useAppStore } from "@/lib/store";
 
 interface DroneControlsProps {
   /** One-row layout for the practice screen (no string picker). */
   compact?: boolean;
 }
+
+const SOURCE_LABELS: Record<DroneSource, string> = { sample: "Recorded", synth: "Synth" };
 
 export function DroneControls({ compact = false }: DroneControlsProps) {
   const on = useAppStore((s) => s.droneOn);
@@ -16,6 +18,8 @@ export function DroneControls({ compact = false }: DroneControlsProps) {
   const setOn = useAppStore((s) => s.setDroneOn);
   const setVolume = useAppStore((s) => s.setDroneVolume);
   const setFirstString = useAppStore((s) => s.setDroneFirstString);
+  const source = useAppStore((s) => s.droneSource);
+  const setSource = useAppStore((s) => s.setDroneSource);
 
   const toggle = () => {
     // Must happen inside the tap: iOS only starts audio from a user gesture.
@@ -57,23 +61,43 @@ export function DroneControls({ compact = false }: DroneControlsProps) {
       </h2>
       {controls}
       <div className="flex flex-col gap-2">
-        <span className="text-sm text-muted">First string</span>
-        <div className="grid grid-cols-3 gap-2" role="group" aria-label="First string">
-          {FIRST_STRINGS.map((first) => (
+        <span className="text-sm text-muted">Sound</span>
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Tanpura sound">
+          {DRONE_SOURCES.map((option) => (
             <button
-              key={first}
+              key={option}
               type="button"
-              onClick={() => setFirstString(first)}
-              aria-pressed={firstString === first}
-              className={`h-11 rounded-lg text-sm capitalize ${
-                firstString === first ? "bg-saffron text-background" : "bg-background text-foreground"
+              onClick={() => setSource(option)}
+              aria-pressed={source === option}
+              className={`h-11 rounded-lg text-sm ${
+                source === option ? "bg-saffron text-background" : "bg-background text-foreground"
               }`}
             >
-              {first}
+              {SOURCE_LABELS[option]}
             </button>
           ))}
         </div>
       </div>
+      {source === "synth" && (
+        <div className="flex flex-col gap-2">
+          <span className="text-sm text-muted">First string</span>
+          <div className="grid grid-cols-3 gap-2" role="group" aria-label="First string">
+            {FIRST_STRINGS.map((first) => (
+              <button
+                key={first}
+                type="button"
+                onClick={() => setFirstString(first)}
+                aria-pressed={firstString === first}
+                className={`h-11 rounded-lg text-sm capitalize ${
+                  firstString === first ? "bg-saffron text-background" : "bg-background text-foreground"
+                }`}
+              >
+                {first}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { FIRST_STRINGS, type FirstString } from "@/lib/audio/drone";
+import { DRONE_SOURCES, FIRST_STRINGS, type DroneSource, type FirstString } from "@/lib/audio/drone";
 import { DEFAULT_SILENCE_RMS } from "@/lib/audio/pitch";
 import {
   DEFAULT_SA_NOTE_ID,
@@ -26,6 +26,7 @@ interface PersistedSettings {
   /** 0..1 */
   droneVolume: number;
   droneFirstString: FirstString;
+  droneSource: DroneSource;
 }
 
 export interface DetectedPitch {
@@ -72,6 +73,7 @@ interface AppState extends PersistedSettings {
   setDroneOn: (on: boolean) => void;
   setDroneVolume: (volume: number) => void;
   setDroneFirstString: (first: FirstString) => void;
+  setDroneSource: (source: DroneSource) => void;
   setSampleRate: (rate: number | null) => void;
   setLive: (live: LiveReading) => void;
 }
@@ -80,6 +82,7 @@ const DEFAULTS: PersistedSettings = { saNoteId: DEFAULT_SA_NOTE_ID, fineCents: 0
   silenceRms: DEFAULT_SILENCE_RMS,
   droneVolume: 0.5,
   droneFirstString: "pa",
+  droneSource: "sample",
 };
 
 function sanitize(raw: Partial<PersistedSettings> | undefined): PersistedSettings {
@@ -94,7 +97,8 @@ function sanitize(raw: Partial<PersistedSettings> | undefined): PersistedSetting
   const volume = typeof raw?.droneVolume === "number" && Number.isFinite(raw.droneVolume) ? raw.droneVolume : DEFAULTS.droneVolume;
   const droneVolume = Math.max(0, Math.min(1, volume));
   const droneFirstString = FIRST_STRINGS.find((f) => f === raw?.droneFirstString) ?? DEFAULTS.droneFirstString;
-  return { saNoteId, fineCents, fftSize, silenceRms, droneVolume, droneFirstString };
+  const droneSource = DRONE_SOURCES.find((d) => d === raw?.droneSource) ?? DEFAULTS.droneSource;
+  return { saNoteId, fineCents, fftSize, silenceRms, droneVolume, droneFirstString, droneSource };
 }
 
 export const useAppStore = create<AppState>()(
@@ -112,6 +116,7 @@ export const useAppStore = create<AppState>()(
       setDroneOn: (droneOn) => set({ droneOn }),
       setDroneVolume: (v) => set({ droneVolume: sanitize({ droneVolume: v }).droneVolume }),
       setDroneFirstString: (f) => set({ droneFirstString: sanitize({ droneFirstString: f }).droneFirstString }),
+      setDroneSource: (s) => set({ droneSource: sanitize({ droneSource: s }).droneSource }),
       setSampleRate: (sampleRate) => set({ sampleRate }),
       setLive: (live) => set({ live }),
     }),
@@ -127,6 +132,7 @@ export const useAppStore = create<AppState>()(
         silenceRms,
         droneVolume,
         droneFirstString,
+        droneSource,
       }): PersistedSettings => ({
         saNoteId,
         fineCents,
@@ -134,6 +140,7 @@ export const useAppStore = create<AppState>()(
         silenceRms,
         droneVolume,
         droneFirstString,
+        droneSource,
       }),
       merge: (persisted, current) => ({
         ...current,
