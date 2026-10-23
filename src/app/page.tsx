@@ -3,17 +3,13 @@
 import { useEffect, useState } from "react";
 import { DebugPanel } from "@/components/DebugPanel";
 import { DroneControls } from "@/components/DroneControls";
-import { PitchCanvas } from "@/components/PitchCanvas";
+import { ExercisePanel } from "@/components/ExercisePanel";
 import { SaPicker } from "@/components/SaPicker";
 import { StartGate } from "@/components/StartGate";
-import { TuningMeter } from "@/components/TuningMeter";
 import { useDrone } from "@/hooks/useDrone";
+import { useExercise } from "@/hooks/useExercise";
 import { usePitchStream } from "@/hooks/usePitchStream";
-import { TOLERANCE } from "@/lib/music/scoring";
 import { useAppStore, useSaHz } from "@/lib/store";
-
-// Temporary until the exercise flow (step 6): show Sa as the highlighted target band.
-const DEMO_TARGET = { cents: 0, toleranceCents: TOLERANCE.close };
 
 export default function Home() {
   const hydrated = useAppStore((s) => s.hydrated);
@@ -21,6 +17,7 @@ export default function Home() {
   useDrone();
   const [showDebug, setShowDebug] = useState(false);
   const running = stream.status === "running";
+  const exercise = useExercise(stream.latest, running);
 
   useEffect(() => {
     void useAppStore.persist.rehydrate();
@@ -57,16 +54,15 @@ export default function Home() {
       {running && (
         <>
           <DroneControls compact />
-          <PitchCanvas history={stream.history} target={DEMO_TARGET} className="min-h-48 flex-1" />
-          <TuningMeter />
+          <ExercisePanel controller={exercise} history={stream.history} />
         </>
       )}
 
       {showDebug && <DebugPanel />}
 
-      <footer className="mt-auto flex flex-col items-center gap-1 text-xs text-muted">
-        <p>Use headphones for best results</p>
-        <button type="button" onClick={() => setShowDebug((v) => !v)} className="h-10 px-4 underline">
+      <footer className="mt-auto flex items-center justify-center gap-1 text-xs text-muted">
+        <p>Use headphones for best results ·</p>
+        <button type="button" onClick={() => setShowDebug((v) => !v)} className="h-10 px-2 underline">
           {showDebug ? "Hide debug" : "Debug"}
         </button>
       </footer>

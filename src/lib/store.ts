@@ -27,6 +27,8 @@ interface PersistedSettings {
   droneVolume: number;
   droneFirstString: FirstString;
   droneSource: DroneSource;
+  /** Best Sa Re Ga round score (0..100), if any. */
+  bestRoundScore: number | null;
 }
 
 export interface DetectedPitch {
@@ -74,6 +76,7 @@ interface AppState extends PersistedSettings {
   setDroneVolume: (volume: number) => void;
   setDroneFirstString: (first: FirstString) => void;
   setDroneSource: (source: DroneSource) => void;
+  recordRoundScore: (score: number) => void;
   setSampleRate: (rate: number | null) => void;
   setLive: (live: LiveReading) => void;
 }
@@ -83,6 +86,7 @@ const DEFAULTS: PersistedSettings = { saNoteId: DEFAULT_SA_NOTE_ID, fineCents: 0
   droneVolume: 0.7,
   droneFirstString: "pa",
   droneSource: "sample",
+  bestRoundScore: null,
 };
 
 function sanitize(raw: Partial<PersistedSettings> | undefined): PersistedSettings {
@@ -98,7 +102,19 @@ function sanitize(raw: Partial<PersistedSettings> | undefined): PersistedSetting
   const droneVolume = Math.max(0, Math.min(1, volume));
   const droneFirstString = FIRST_STRINGS.find((f) => f === raw?.droneFirstString) ?? DEFAULTS.droneFirstString;
   const droneSource = DRONE_SOURCES.find((d) => d === raw?.droneSource) ?? DEFAULTS.droneSource;
-  return { saNoteId, fineCents, fftSize, silenceRms, droneVolume, droneFirstString, droneSource };
+  const best = raw?.bestRoundScore;
+  const bestRoundScore =
+    typeof best === "number" && Number.isFinite(best) ? Math.max(0, Math.min(100, Math.round(best))) : null;
+  return {
+    saNoteId,
+    fineCents,
+    fftSize,
+    silenceRms,
+    droneVolume,
+    droneFirstString,
+    droneSource,
+    bestRoundScore,
+  };
 }
 
 export const useAppStore = create<AppState>()(
@@ -117,6 +133,11 @@ export const useAppStore = create<AppState>()(
       setDroneVolume: (v) => set({ droneVolume: sanitize({ droneVolume: v }).droneVolume }),
       setDroneFirstString: (f) => set({ droneFirstString: sanitize({ droneFirstString: f }).droneFirstString }),
       setDroneSource: (s) => set({ droneSource: sanitize({ droneSource: s }).droneSource }),
+      recordRoundScore: (score) =>
+        set((state) => ({
+          bestRoundScore:
+            state.bestRoundScore === null || score > state.bestRoundScore ? score : state.bestRoundScore,
+        })),
       setSampleRate: (sampleRate) => set({ sampleRate }),
       setLive: (live) => set({ live }),
     }),
@@ -133,6 +154,7 @@ export const useAppStore = create<AppState>()(
         droneVolume,
         droneFirstString,
         droneSource,
+        bestRoundScore,
       }): PersistedSettings => ({
         saNoteId,
         fineCents,
@@ -141,6 +163,7 @@ export const useAppStore = create<AppState>()(
         droneVolume,
         droneFirstString,
         droneSource,
+        bestRoundScore,
       }),
       merge: (persisted, current) => ({
         ...current,

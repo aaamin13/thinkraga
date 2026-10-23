@@ -12,13 +12,13 @@ function tone(absOffset: number): { text: string; bg: string } {
   return { text: "text-zinc-500", bg: "bg-zinc-500" };
 }
 
-export function TuningMeter() {
+export function TuningMeter({ compact = false }: { compact?: boolean }) {
   const pitch = useAppStore((s) => s.live.pitch);
 
   if (!pitch) {
     return (
-      <div className="flex h-36 flex-col items-center justify-center gap-1 text-muted">
-        <p className="text-4xl font-semibold">–</p>
+      <div className={`flex flex-col items-center justify-center gap-1 text-muted ${compact ? "h-24" : "h-36"}`}>
+        <p className={`font-semibold ${compact ? "text-2xl" : "text-4xl"}`}>–</p>
         <p className="text-sm">Sing a note</p>
       </div>
     );
@@ -31,11 +31,11 @@ export function TuningMeter() {
   const needle = 50 + (Math.max(-NEEDLE_RANGE_CENTS, Math.min(NEEDLE_RANGE_CENTS, offset)) / NEEDLE_RANGE_CENTS) * 50;
 
   return (
-    <div className="flex h-36 flex-col items-center justify-center gap-2" aria-live="off">
-      <p className={`whitespace-nowrap text-4xl font-semibold ${text}`}>
-        {devanagari} <span className="text-3xl">{latin}</span>
+    <div className={`flex flex-col items-center justify-center gap-2 ${compact ? "h-24" : "h-36"}`} aria-live="off">
+      <p className={`whitespace-nowrap font-semibold ${text} ${compact ? "text-2xl" : "text-4xl"}`}>
+        {devanagari} <span className={compact ? "text-xl" : "text-3xl"}>{latin}</span>
       </p>
-      <p className={`whitespace-nowrap font-mono text-lg tabular-nums ${text}`}>
+      <p className={`whitespace-nowrap font-mono tabular-nums ${text} ${compact ? "text-sm" : "text-lg"}`}>
         {rounded > 0 ? "+" : ""}
         {rounded}¢ {rounded > 0 ? "▲ sharp" : rounded < 0 ? "▼ flat" : "● in tune"}
       </p>
