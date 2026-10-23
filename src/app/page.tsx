@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { DebugPanel } from "@/components/DebugPanel";
+import { DroneControls } from "@/components/DroneControls";
 import { PitchCanvas } from "@/components/PitchCanvas";
 import { SaPicker } from "@/components/SaPicker";
 import { StartGate } from "@/components/StartGate";
 import { TuningMeter } from "@/components/TuningMeter";
+import { useDrone } from "@/hooks/useDrone";
 import { usePitchStream } from "@/hooks/usePitchStream";
 import { TOLERANCE } from "@/lib/music/scoring";
 import { useAppStore, useSaHz } from "@/lib/store";
@@ -16,6 +18,7 @@ const DEMO_TARGET = { cents: 0, toleranceCents: TOLERANCE.close };
 export default function Home() {
   const hydrated = useAppStore((s) => s.hydrated);
   const stream = usePitchStream();
+  useDrone();
   const [showDebug, setShowDebug] = useState(false);
   const running = stream.status === "running";
 
@@ -45,12 +48,15 @@ export default function Home() {
             <SaPicker />
           </div>
 
+          <DroneControls />
+
           <StartGate status={stream.status} error={stream.error} onStart={() => void stream.start()} />
         </>
       )}
 
       {running && (
         <>
+          <DroneControls compact />
           <PitchCanvas history={stream.history} target={DEMO_TARGET} className="min-h-48 flex-1" />
           <TuningMeter />
         </>

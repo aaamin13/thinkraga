@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { FIRST_STRINGS, type FirstString } from "@/lib/audio/drone";
 import { DEFAULT_SILENCE_RMS } from "@/lib/audio/pitch";
 import {
   DEFAULT_SA_NOTE_ID,
@@ -22,6 +23,9 @@ interface PersistedSettings {
   /** 2048 is more responsive; 4096 tracks low voices better. */
   fftSize: FftSize;
   silenceRms: SilenceRms;
+  /** 0..1 */
+  droneVolume: number;
+  droneFirstString: FirstString;
 }
 
 export interface DetectedPitch {
@@ -57,18 +61,25 @@ export const EMPTY_LIVE: LiveReading = {
 interface AppState extends PersistedSettings {
   /** True once localStorage has been read (it is never available during SSR). */
   hydrated: boolean;
+  /** Not persisted: audio must be started by a tap each visit. */
+  droneOn: boolean;
   sampleRate: number | null;
   live: LiveReading;
   setSaNote: (id: string) => void;
   setFineCents: (cents: number) => void;
   setFftSize: (size: FftSize) => void;
   setSilenceRms: (rms: SilenceRms) => void;
+  setDroneOn: (on: boolean) => void;
+  setDroneVolume: (volume: number) => void;
+  setDroneFirstString: (first: FirstString) => void;
   setSampleRate: (rate: number | null) => void;
   setLive: (live: LiveReading) => void;
 }
 
 const DEFAULTS: PersistedSettings = { saNoteId: DEFAULT_SA_NOTE_ID, fineCents: 0, fftSize: 2048,
   silenceRms: DEFAULT_SILENCE_RMS,
+  droneVolume: 0.5,
+  droneFirstString: "pa",
 };
 
 function sanitize(raw: Partial<PersistedSettings> | undefined): PersistedSettings {
@@ -80,7 +91,10 @@ function sanitize(raw: Partial<PersistedSettings> | undefined): PersistedSetting
   const fineCents = Math.max(-FINE_TUNE_RANGE_CENTS, Math.min(FINE_TUNE_RANGE_CENTS, Math.round(fine)));
   const fftSize = FFT_SIZES.find((size) => size === raw?.fftSize) ?? DEFAULTS.fftSize;
   const silenceRms = SILENCE_RMS_OPTIONS.find((v) => v === raw?.silenceRms) ?? DEFAULTS.silenceRms;
-  return { saNoteId, fineCents, fftSize, silenceRms };
+  const volume = typeof raw?.droneVolume === "number" && Number.isFinite(raw.droneVolume) ? raw.droneVolume : DEFAULTS.droneVolume;
+  const droneVolume = Math.max(0, Math.min(1, volume));
+  const droneFirstString = FIRST_STRINGS.find((f) => f === raw?.droneFirstString) ?? DEFAULTS.droneFirstString;
+  return { saNoteId, fineCents, fftSize, silenceRms, droneVolume, droneFirstString };
 }
 
 export const useAppStore = create<AppState>()(
@@ -88,12 +102,16 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       ...DEFAULTS,
       hydrated: false,
+      droneOn: false,
       sampleRate: null,
       live: EMPTY_LIVE,
       setSaNote: (id) => set({ saNoteId: sanitize({ saNoteId: id }).saNoteId }),
       setFineCents: (cents) => set({ fineCents: sanitize({ fineCents: cents }).fineCents }),
       setFftSize: (size) => set({ fftSize: sanitize({ fftSize: size }).fftSize }),
       setSilenceRms: (rms) => set({ silenceRms: sanitize({ silenceRms: rms }).silenceRms }),
+      setDroneOn: (droneOn) => set({ droneOn }),
+      setDroneVolume: (v) => set({ droneVolume: sanitize({ droneVolume: v }).droneVolume }),
+      setDroneFirstString: (f) => set({ droneFirstString: sanitize({ droneFirstString: f }).droneFirstString }),
       setSampleRate: (sampleRate) => set({ sampleRate }),
       setLive: (live) => set({ live }),
     }),
@@ -102,11 +120,20 @@ export const useAppStore = create<AppState>()(
       version: 1,
       // Rehydrated manually in an effect so server and first client render match.
       skipHydration: true,
-      partialize: ({ saNoteId, fineCents, fftSize, silenceRms }): PersistedSettings => ({
+      partialize: ({
         saNoteId,
         fineCents,
         fftSize,
         silenceRms,
+        droneVolume,
+        droneFirstString,
+      }): PersistedSettings => ({
+        saNoteId,
+        fineCents,
+        fftSize,
+        silenceRms,
+        droneVolume,
+        droneFirstString,
       }),
       merge: (persisted, current) => ({
         ...current,
