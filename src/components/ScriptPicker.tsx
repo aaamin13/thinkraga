@@ -4,7 +4,7 @@ import { SWARA_SCRIPTS, swaraLabel, type SwaraScript } from "@/lib/music/swara";
 import { useAppStore } from "@/lib/store";
 
 const OPTIONS: Record<SwaraScript, string> = {
-  devanagari: "हिन्दी / देवनागरी",
+  devanagari: "हिन्दी",
   bengali: "বাংলা",
 };
 
