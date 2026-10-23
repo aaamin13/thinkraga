@@ -174,14 +174,20 @@ export const DRONE_SOURCES: readonly DroneSource[] = ["sample", "synth"];
 /** Seamlessly looping recording (see public/audio/CREDITS.md). */
 export const TANPURA_SAMPLE = { url: "/audio/tanpura-c-sharp-3.wav", saHz: 138.59 } as const;
 
-const SAMPLE_LEVEL = 0.6;
+// The recording is normalised to ~-1 dBFS peak; this extra gain leaves loud settings that can
+// compete with a voice on a phone speaker, with a limiter below to prevent clipping.
+const SAMPLE_LEVEL = 1.8;
 
 /**
  * Loops a recorded tanpura. It is transposed by changing `playbackRate`, so tempo and timbre shift
  * with it; the further your Sa is from the recorded one, the less natural it sounds.
  */
 export class SampleDrone implements Drone {
-  private graph: { source: AudioBufferSourceNode; master: GainNode } | null = null;
+  private graph: {
+    source: AudioBufferSourceNode;
+    master: GainNode;
+    limiter: DynamicsCompressorNode;
+  } | null = null;
   private saHz = 0;
   private volume = 0.5;
 
@@ -200,7 +206,15 @@ export class SampleDrone implements Drone {
     const master = context.createGain();
     master.gain.value = 0;
     master.gain.setTargetAtTime(this.volumeGain(), context.currentTime, FADE_TIME_CONSTANT_S);
-    master.connect(context.destination);
+
+    const limiter = context.createDynamicsCompressor();
+    limiter.threshold.value = -6;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.2;
+    master.connect(limiter);
+    limiter.connect(context.destination);
 
     const source = context.createBufferSource();
     source.buffer = this.buffer;
@@ -208,7 +222,7 @@ export class SampleDrone implements Drone {
     source.playbackRate.value = saHz / this.recordedSaHz;
     source.connect(master);
     source.start();
-    this.graph = { source, master };
+    this.graph = { source, master, limiter };
   }
 
   stop(): void {
@@ -223,6 +237,7 @@ export class SampleDrone implements Drone {
       graph.source.stop();
       graph.source.disconnect();
       graph.master.disconnect();
+      graph.limiter.disconnect();
     }, TEARDOWN_DELAY_MS);
   }
 

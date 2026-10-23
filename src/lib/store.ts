@@ -80,7 +80,7 @@ interface AppState extends PersistedSettings {
 
 const DEFAULTS: PersistedSettings = { saNoteId: DEFAULT_SA_NOTE_ID, fineCents: 0, fftSize: 2048,
   silenceRms: DEFAULT_SILENCE_RMS,
-  droneVolume: 0.5,
+  droneVolume: 0.7,
   droneFirstString: "pa",
   droneSource: "sample",
 };
