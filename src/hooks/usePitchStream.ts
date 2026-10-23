@@ -136,13 +136,13 @@ function runDetectionLoop(
   const tick = (now: number) => {
     rafId = requestAnimationFrame(tick);
 
-    const { fftSize, saNoteId, fineCents } = useAppStore.getState();
+    const { fftSize, saNoteId, fineCents, silenceRms } = useAppStore.getState();
     if (analyser.fftSize !== fftSize) {
       analyser.fftSize = fftSize;
       analyzer = createPitchAnalyzer(analyser, sampleRate);
     }
 
-    const frame = analyzer.analyze();
+    const frame = analyzer.analyze(silenceRms);
     const smoothed = smoother.push(frame.hz);
     const sample: PitchSample = {
       t: now,
@@ -176,6 +176,7 @@ function runDetectionLoop(
       clarity: frame.clarity,
       rms: frame.rms,
       fps,
+      contextState: context.state,
     });
   };
   rafId = requestAnimationFrame(tick);

@@ -1,20 +1,23 @@
 "use client";
 
-import { FFT_SIZES, useAppStore } from "@/lib/store";
+import { FFT_SIZES, SILENCE_RMS_OPTIONS, useAppStore } from "@/lib/store";
 
 export function DebugPanel() {
   const sampleRate = useAppStore((s) => s.sampleRate);
   const fftSize = useAppStore((s) => s.fftSize);
   const setFftSize = useAppStore((s) => s.setFftSize);
-  const { pitch, rawHz, clarity, rms, fps } = useAppStore((s) => s.live);
+  const silenceRms = useAppStore((s) => s.silenceRms);
+  const setSilenceRms = useAppStore((s) => s.setSilenceRms);
+  const { pitch, rawHz, clarity, rms, fps, contextState } = useAppStore((s) => s.live);
 
   const rows: [string, string][] = [
+    ["Audio context", contextState ?? "–"],
     ["Sample rate", sampleRate ? `${sampleRate} Hz` : "–"],
     ["Raw Hz", rawHz ? rawHz.toFixed(2) : "–"],
     ["Median Hz", pitch ? pitch.hz.toFixed(2) : "–"],
     ["Cents vs Sa", pitch ? pitch.cents.toFixed(1) : "–"],
     ["Clarity", clarity.toFixed(3)],
-    ["RMS", rms.toFixed(4)],
+    ["RMS (level)", `${rms.toFixed(4)}${rms < silenceRms ? " · below gate" : ""}`],
     ["Frames/s", fps ? fps.toFixed(0) : "–"],
   ];
 
@@ -28,24 +31,43 @@ export function DebugPanel() {
           </div>
         ))}
       </dl>
-      <div className="flex items-center justify-between">
-        <span className="text-muted">FFT size</span>
-        <div className="flex gap-2">
-          {FFT_SIZES.map((size) => (
-            <button
-              key={size}
-              type="button"
-              onClick={() => setFftSize(size)}
-              aria-pressed={fftSize === size}
-              className={`h-10 rounded-lg px-3 ${
-                fftSize === size ? "bg-saffron text-background" : "bg-background text-foreground"
-              }`}
-            >
-              {size}
-            </button>
-          ))}
-        </div>
-      </div>
+      <OptionRow label="FFT size" options={FFT_SIZES} value={fftSize} onChange={setFftSize} />
+      <OptionRow
+        label="Silence gate (RMS)"
+        options={SILENCE_RMS_OPTIONS}
+        value={silenceRms}
+        onChange={setSilenceRms}
+      />
     </section>
+  );
+}
+
+interface OptionRowProps<T extends number> {
+  label: string;
+  options: readonly T[];
+  value: T;
+  onChange: (value: T) => void;
+}
+
+function OptionRow<T extends number>({ label, options, value, onChange }: OptionRowProps<T>) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-muted">{label}</span>
+      <div className="flex gap-1">
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            aria-pressed={value === option}
+            className={`h-10 rounded-lg px-2.5 ${
+              value === option ? "bg-saffron text-background" : "bg-background text-foreground"
+            }`}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
